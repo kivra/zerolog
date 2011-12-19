@@ -1,0 +1,7 @@
+deps
+ebin
+priv/log
+Mnesia*
+*.beam
+erl_crash.dump
+.eunit
