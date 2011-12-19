@@ -74,7 +74,6 @@ start_backends(Backends) ->
 	end || Backend <- Backends],
     ok.
 
-
 %% Private
 receive_log(_Payload, []) ->
 	ok;

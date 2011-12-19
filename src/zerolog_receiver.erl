@@ -14,7 +14,6 @@
 
 init(Config) ->
 	Addr = zerolog_config:get_conf(Config, addr, undefined),
-	erlang:display(Addr),
 	{ok, Context} = erlzmq:context(),
  	{ok, Socket} = erlzmq:socket(Context, pull),
 	ok = erlzmq:bind(Socket, Addr),
