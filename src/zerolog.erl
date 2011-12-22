@@ -19,15 +19,18 @@ start_link() ->
 start() ->
 	start_common(),
     application:start(zerolog),
-    gen_server:call(zerolog_server, start_backends).
+    gen_server:call(zerolog_server, start_backends),
+    gen_server:call(zerolog_server, start_receiver).
 
 %% @spec stop() -> ok
 %% @doc Stop the zerologserver.
 stop() ->
     Res = application:stop(zerolog),
     application:stop(mnesia),
+	application:stop(inets),
     Res.
 
 %% @private
 start_common() ->
+	application:start(inets),
 	ok.

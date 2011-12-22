@@ -22,7 +22,7 @@ start_link() ->
 	start_link([]).
 
 start_link(Opts) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Opts], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, Opts, []).
 
 handle_call({handle_log, #message{prio=Prio, payload=Payload}},
 				_From, State) ->

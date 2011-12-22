@@ -16,12 +16,11 @@
      terminate/2, code_change/3]).
 
 -define(DEF_ENABLED_BACKENDS, [zerolog_tty]).
--define(DEF_RECEIVER, [{addr, "tcp://*:2121"}]).
+-define(DEF_RECEIVER, zerolog_receiver).
 
 -type backend() :: atom().
 
--record(state, {receiver :: term(),
-                backends :: list(backend())}).
+-record(state, {backends :: list(backend())}).
 
 %% API
 start_link() ->
@@ -31,15 +30,15 @@ start_link() ->
 init([]) ->
 	Backends = zerolog_config:get_conf(enabled_backends, ?DEF_ENABLED_BACKENDS),
 	OrdBackends = ordsets:from_list(Backends),
-	ReceiverConfig =  zerolog_config:get_conf(zerolog_receiver, ?DEF_RECEIVER),
-	{ok, State} = zerolog_receiver:init(ReceiverConfig),
-	{ok, NewState} = zerolog_receiver:start(State),
-	process_flag(trap_exit, true),
-	{ok, #state{receiver=NewState, backends=OrdBackends}}.
+	{ok, #state{backends=OrdBackends}}.
 
 %% @private
 handle_call(start_backends, _From, #state{backends = Backends} = State) ->
-	start_backends(Backends),
+	attach_childs(Backends),
+	{reply, ok, State};
+
+handle_call(start_receiver, _From, State) ->
+	attach_childs([?DEF_RECEIVER]),
 	{reply, ok, State};
 
 handle_call({receive_log, Payload}, _From,
@@ -53,25 +52,24 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, #state{receiver = ReceiverState} = _State) ->
-	zerolog_receiver:stop(ReceiverState),
+terminate(_Reason, _State) ->
 	ok.
     
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% Private
-start_backends(Backends) ->
+attach_childs(Inputs) ->
 	[begin
-		BackendConfig = zerolog_config:get_conf(Backend, []),
-		ChildSpec = {Backend,
-                 		{Backend, start_link, [BackendConfig]},
+		InputConfig = zerolog_config:get_conf(Input, []),
+		ChildSpec = {Input,
+                 		{Input, start_link, [InputConfig]},
                  		permanent,
 		                2000,
 		                worker,
-		                [Backend]},
+		                [Input]},
 		supervisor:start_child(zerolog_sup, ChildSpec)
-	end || Backend <- Backends],
+	end || Input <- Inputs],
     ok.
 
 %% Private
