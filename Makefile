@@ -18,7 +18,7 @@ app:
 	@./rebar compile skip_deps=true
 
 webstart: app
-	exec erl -pa $(PWD)/ebin -pa $(PWD)/deps/*/ebin -boot start_sasl -config $(PWD)/priv/app.config -s $(APP)
+	exec erl -pa $(PWD)/ebin -pa $(PWD)/deps/*/ebin -boot start_sasl -name zerolog@127.0.0.1 -config $(PWD)/priv/app.config -s $(APP)
 
 clean:
 	@./rebar clean
