@@ -88,5 +88,4 @@ To get started, you need to:
 
    Now that you have a functional server, let's try storing some logs in
    it. As of this writing these are the ready made options:
-   + Alogger (with the Zerolog backend configured)
-   https://github.com/bipthelin/alogger
+   - Alogger (with the Zerolog backend configured): [[https://github.com/bipthelin/alogger]]
