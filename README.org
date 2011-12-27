@@ -1,0 +1,91 @@
+* Zerolog - Log transport that just works with zero effort.
+  Zerolog is a distributed, decentralized log transport originally
+  developed as a replacement for Scribe.
+  
+  Below, you will find the "quick start" directions for setting up and
+  using Zerolog.  For more information, browse the following files:
+ 
+    - README:  this file
+    - src/    the source tree for Zerolog
+    - priv/app.config: Zerolog configuration file
+
+* Motivation
+
+  After struggling with Scribe to get it to compile and work with Hadoop
+  for log transportation we felt that enough is enough. Sure these are
+  complex issues but done right they should be easy enough to install and
+  use. After looking into Chukwa, Flume and others we felt that we could
+  accomplish basically the same but with 1/10th the code.
+  Less code = less buggs.
+  
+  And when doing this we finally gave up Hadoop and moved to Disco and
+  ironically none of the above work with Disco so this made all the more sense.
+
+* Quick Start
+
+  This section assumes that you have copy of the Zerolog source tree. If not
+  just
+
+#+BEGIN_EXAMPLE
+   $ git clone git://github.com/bipthelin/zerolog.git
+#+END_EXAMPLE
+
+To get started, you need to:
+  1. Build Zerolog
+  2. Configure Zerolog for your log analysis backend
+  3. Start the Zerolog server
+  4. Connect a client and store log data
+
+** Building Zerolog
+
+   Assuming you have a working Erlang installation,
+   building Zerolog should be as simple as:
+
+#+BEGIN_EXAMPLE
+   $ cd $ZEROLOG
+   $ make
+#+END_EXAMPLE
+
+  If anything goes wrong and you're sure you have a working Erlang installation
+  it probably has something to do with building bindings for ZeroMQ. If so please
+  google that.
+
+** Configuring Zerolog
+
+  Everything needed to configure Zerolog is in the =priv/app.config= file.
+
+#+BEGIN_SRC erlang
+[
+    {zerolog, [
+		{enabled_backends, [zerolog_tty, zerolog_disco]},
+		{zerolog_tty, []},
+	    {zerolog_disco, [
+	    					{nodes, ['zerolog@127.0.0.1']},
+		    				{threshold, 5},
+		    				{master, "http://localhost:8989"},
+		    				{prefix, "0b"},
+		    				{tag, "data:zerolog"}
+	    				]},
+	    {zerolog_receiver, [{addr, "tcp://*:2121"}]}
+	]}
+].
+#+END_SRC
+
+  Zerolog is configured to use one or many backends, they are enabled when put
+  under =enabled_backends= and configured in each of their entries.
+
+** Starting Zerolog
+
+   Once you have successfully built Zerolog, you can start the server with the
+   following commands:
+
+#+BEGIN_EXAMPLE
+   $ cd $ZEROLOG/
+   $ ./start.sh
+#+END_EXAMPLE
+
+** Connecting a client to Zerolog
+
+   Now that you have a functional server, let's try storing some logs in
+   it. As of this writing these are the ready made options:
+   + Alogger (with the Zerolog backend configured)
