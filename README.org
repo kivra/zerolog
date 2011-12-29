@@ -54,7 +54,7 @@ To get started, you need to:
 
 #+BEGIN_EXAMPLE
    $ cd $ZEROLOG
-   $ make
+   $ make rel
 #+END_EXAMPLE
 
   If anything goes wrong and you're sure you have a working Erlang installation
@@ -63,7 +63,7 @@ To get started, you need to:
 
 ** Configuring Zerolog
 
-  Everything needed to configure Zerolog is in the =priv/app.config= file.
+  Everything needed to configure Zerolog is in the =apps/zerolog/priv/app.config= file.
 
 #+BEGIN_SRC erlang
 [
@@ -91,8 +91,8 @@ To get started, you need to:
    following commands:
 
 #+BEGIN_EXAMPLE
-   $ cd $ZEROLOG/
-   $ ./start.sh
+   $ cd $ZEROLOG/rel/zerolog
+   $ bin/zerolog start
 #+END_EXAMPLE
 
 ** Connecting a client to Zerolog
