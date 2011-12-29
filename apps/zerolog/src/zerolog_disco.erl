@@ -344,9 +344,6 @@ ensure_table() ->
     	{aborted,{already_exists,?TABLE_NAME}} -> ok;
     	Error -> Error
   	end.
-    
-binary_to_hex(B) ->
-  lists:flatten([io_lib:format("~2.16.0B", [X]) || X <- binary_to_list(B)]).
 
 persist_transactional(Message) ->
 	T = fun() ->
@@ -360,4 +357,5 @@ persist_transactional(Message) ->
 	mnesia:transaction(T).
 
 generate_id(Message) ->
-	binary_to_hex(erlang:md5(Message)).
+	<<I:160/integer>> = crypto:sha(term_to_binary({make_ref(), now()})), 
+    erlang:integer_to_list(I, 16).
