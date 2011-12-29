@@ -63,7 +63,7 @@ To get started, you need to:
 
 ** Configuring Zerolog
 
-  Everything needed to configure Zerolog is in the =apps/zerolog/priv/app.config= file.
+  Everything needed to configure Zerolog is in the =rel/zerolog/etc/app.config= file.
 
 #+BEGIN_SRC erlang
 [
