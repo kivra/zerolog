@@ -51,7 +51,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Private
 receive_loop(Socket) ->
-	{ok, Msg} = erlzmq:recv(Socket),
-	{Prio, Message} = binary_to_term(Msg),
-	gen_server:call(?DEF_SERVER, {receive_log, #message{prio=Prio, payload=Message}}),
+	{ok, Payload} = erlzmq:recv(Socket),
+	{{_, Msg}, _} = protobuffs:decode(Payload, bytes),
+	gen_server:call(?DEF_SERVER, {receive_log, #message{payload=Msg}}),
 	receive_loop(Socket).

@@ -24,9 +24,9 @@ start_link() ->
 start_link(Opts) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Opts, []).
 
-handle_call({handle_log, #message{prio=Prio, payload=Payload}},
+handle_call({handle_log, #message{payload=Payload}},
 				_From, State) ->
-	io:format("Prio: ~s, ~s", [Prio, Payload]),
+	io:format("Prio: ~s", [Payload]),
     {reply, ok, State}.
 
 handle_cast(_Msg, State) ->

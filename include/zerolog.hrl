@@ -1,1 +1,3 @@
--record(message, {prio, payload}).
+
+% Message passing
+-record(message, {payload}).
