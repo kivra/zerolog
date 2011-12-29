@@ -9,6 +9,17 @@
     - src/    the source tree for Zerolog
     - priv/app.config: Zerolog configuration file
 
+* Design
+
+  For obvious reasons Zerolog uses a client-server architecture where clients
+  sends the logs as Protocol Buffers over ZeroMQ to one or many Zerolog servers.
+  Zerolog can be setup in a cluster to avoid single point of failures. Also the
+  ZeroMQ transport layer will keep track of send messages and even buffer to
+  memory and then to disk if the Zerolog server can't be reached.
+
+  Zerolog uses a clustered caching database to buffer incoming log messages and
+  when reaching a set =threshold= it will push the whole set to disco as one file.
+
 * Motivation
 
   After struggling with Scribe to get it to compile and work with Hadoop
@@ -57,7 +68,7 @@ To get started, you need to:
 #+BEGIN_SRC erlang
 [
     {zerolog, [
-		{enabled_backends, [zerolog_tty, zerolog_disco]},
+	    {enabled_backends, [zerolog_tty, zerolog_disco]},
 		{zerolog_tty, []},
 	    {zerolog_disco, [
 	    					{nodes, ['zerolog@127.0.0.1']},
