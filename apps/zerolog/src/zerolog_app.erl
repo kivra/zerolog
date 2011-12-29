@@ -17,7 +17,11 @@
 
 start(_StartType, _StartArgs) ->
 	error_logger:info_msg("Starting Zerolog~n"),
-    zerolog_sup:start_link().
+    Ret = zerolog_sup:start_link(),
+    gen_server:call(zerolog_server, start_backends),
+    gen_server:call(zerolog_server, start_receiver),
+	Ret.
+
 
 stop(_State) ->
     ok.

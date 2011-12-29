@@ -1,12 +1,14 @@
 {application, zerolog,
  [
-  {description, ""},
+  {description, "Log transport that just works with zero effort."},
   {vsn, "0.1"},
   {modules, []},
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  sasl,
+                  inets
                  ]},
   {mod, { zerolog_app, []}},
   {env, []}

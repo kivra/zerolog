@@ -11,26 +11,18 @@
 %% @spec start_link() -> {ok,Pid::pid()}
 %% @doc Starts the app for inclusion in a supervisor tree
 start_link() ->
-	start_common(),
     zerolog_sup:start_link().
 
 %% @spec start() -> ok
 %% @doc Start the zerolog server.
 start() ->
-	start_common(),
-    application:start(zerolog),
-    gen_server:call(zerolog_server, start_backends),
-    gen_server:call(zerolog_server, start_receiver).
+	application:start(sasl),
+	application:start(inets),
+    application:start(zerolog).
 
 %% @spec stop() -> ok
 %% @doc Stop the zerologserver.
 stop() ->
-    Res = application:stop(zerolog),
-    application:stop(mnesia),
-	application:stop(inets),
-    Res.
-
-%% @private
-start_common() ->
-	application:start(inets),
-	ok.
+    application:stop(zerolog),
+    application:stop(inets),
+    application:stop(sasl).

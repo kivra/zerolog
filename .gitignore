@@ -5,3 +5,5 @@ Mnesia*
 *.beam
 erl_crash.dump
 .eunit
+rel/zerolog
+*@127.0.0.1
