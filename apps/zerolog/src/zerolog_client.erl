@@ -8,7 +8,7 @@
 
 -export([run/1]).
 
--define(DEF_ADDR, "tcp://evodisco01.evolope.com:2121").
+-define(DEF_ADDR, "tcp://localhost:2121").
 
 run(N) ->
 	{ok, Context} = erlzmq:context(),
