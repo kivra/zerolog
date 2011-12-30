@@ -58,11 +58,11 @@ start_link(Config) ->
     start_link(Config, []).
 
 start_link(Config, Seed) when is_atom(Seed) ->
-    start_link(Config, {seed_node, Seed});
+    start_link(Config, {seed, Seed});
 
 start_link(Config, Opts) ->
 	Nodes =  zerolog_config:get_conf(Config, nodes, ?NODES),
-    gen_leader:start_link(?SERVER, Nodes, Opts, ?MODULE, Config, []).
+    gen_leader:start_link(?SERVER, Nodes, [Opts], ?MODULE, Config, []).
 
 %%%===================================================================
 %%% gen_leader callbacks
@@ -83,8 +83,8 @@ init(Config) ->
 	ZerologMaster = zerolog_config:get_conf(Config, master, ?THRESHOLD),
 	Prefix =  zerolog_config:get_conf(Config, prefix, ?PREFIX),
 	Tag =  zerolog_config:get_conf(Config, tag, ?TAG),
-	ensure_schema(),
-    mnesia:start(),
+	ok = ensure_schema(),
+    ok = mnesia:start(),
     ensure_table(),
     {ok, #state{zerolog_master=ZerologMaster, prefix=Prefix, threshold=Threshold, tag=Tag}}.
 
@@ -159,7 +159,7 @@ handle_leader_cast(push_to_ddfs, #state{zerolog_master=ZerologMaster,
 										tag=Tag} = State,
 										_Election) ->
 	db_to_ddfs(ZerologMaster, Prefix, Tag),
-    {reply, ok, State}.
+    {ok, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -203,7 +203,7 @@ handle_DOWN(_Node, State, _Election) ->
 handle_call({handle_log, #message{payload=Payload}},
 							_From, #state{threshold=Threshold} = State,
 							_Election) ->
-	persist_transactional(Payload),
+	{atomic,_} = persist_transactional(Payload),
 	push_to_ddfs(Threshold),
 	{reply, ok, State}.
 
@@ -277,7 +277,7 @@ db_to_ddfs(ZerologMaster, Prefix, Tag) ->
 	Url = get_put_path(ZerologMaster, Prefix),
 	case ddfs_http:http_put(Filename, Url, ?PUT_WAIT_TIMEOUT) of
 		{ok, DiscoUrl} ->
-			ddfs_put_tag(ZerologMaster, DiscoUrl, Tag),
+			ok = ddfs_put_tag(ZerologMaster, DiscoUrl, Tag),
 			file:delete(Filename);
 		_ -> ok
 	end.
@@ -293,13 +293,14 @@ write_to_file() ->
 	{{Year, Month, Day}, {Hour, Minute, Second}} = erlang:localtime(),
 	ID = lists:flatten(io_lib:format("~4..0w~2..0w~2..0w-~2..0w~2..0w~2..0w",
 									[Year, Month, Day, Hour, Minute, Second])),
-	File = filename:join(["priv", ID++".0dmp"]),
+	DbDir = zerolog_config:get_db_dir(),
+	File = filename:join([DbDir, ID++".0dmp"]),
 	F = fun() ->
 		{ok, FD} = file:open(File, [write]),
 		write_table_to_file(FD, ?TABLE_NAME),
 	    file:close(FD)
 	end,
-	mnesia:transaction(F),
+	{atomic, _} = mnesia:transaction(F),
 	File.
 
 write_table_to_file(FD, TableName)->

@@ -68,7 +68,7 @@ attach_childs(Inputs) ->
 		                2000,
 		                worker,
 		                [Input]},
-		supervisor:start_child(zerolog_sup, ChildSpec)
+		{ok, _} = supervisor:start_child(zerolog_sup, ChildSpec)
 	end || Input <- Inputs],
     ok.
 

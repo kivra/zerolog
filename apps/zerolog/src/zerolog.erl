@@ -16,13 +16,13 @@ start_link() ->
 %% @spec start() -> ok
 %% @doc Start the zerolog server.
 start() ->
-	application:start(sasl),
-	application:start(inets),
-    application:start(zerolog).
+	ok = application:start(sasl),
+	ok = application:start(inets),
+    ok = application:start(zerolog).
 
 %% @spec stop() -> ok
 %% @doc Stop the zerologserver.
 stop() ->
-    application:stop(zerolog),
-    application:stop(inets),
-    application:stop(sasl).
+    ok = application:stop(zerolog),
+    ok = application:stop(inets),
+    ok = application:stop(sasl).

@@ -43,7 +43,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, #state{context=Context, socket=Socket}) ->
-	erlzmq:close(Socket),
+	ok = erlzmq:close(Socket),
     erlzmq:term(Context).
     
 code_change(_OldVsn, State, _Extra) ->
