@@ -304,10 +304,10 @@ write_to_file() ->
 	File.
 
 write_table_to_file(FD, TableName)->
-    I =  fun(#zerolog{message=Message},_)->
-		file:write(FD, io_lib:format("~s~n",[Message]))
-		% Delete Mnesia record
-    end,
+    I =  fun(#zerolog{message=Message} = Req, _)->
+		file:write(FD, io_lib:format("~s~n",[Message])),
+		mnesia:delete_object(Req)
+	end,
 	case mnesia:is_transaction() of
         true ->
         	mnesia:foldl(I, [], TableName);
