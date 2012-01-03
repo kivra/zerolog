@@ -98,5 +98,19 @@ To get started, you need to:
 ** Connecting a client to Zerolog
 
    Now that you have a functional server, let's try storing some logs in
-   it. As of this writing these are the ready made options:
+   it.
+
+#+BEGIN_EXAMPLE
+   $ cd $ZEROLOG
+   $ erl -pa deps/*/ebin -pa apps/zerolog/ebin
+   Erlang R15B (erts-5.9) [source] [64-bit] [smp:2:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+   Eshell V5.9  (abort with ^G)
+   1> zerolog_client:run(1).
+#+END_EXAMPLE
+
+   =zerolog_client= is a small client test library with one function =run/1= which takes one argument
+   number of time to send, so =zerolog_client:run(10)= would send 10 messages.
+
+   As of this writing these are the ready made options:
    - Alogger (with the Zerolog backend configured): [[https://github.com/bipthelin/alogger]]
