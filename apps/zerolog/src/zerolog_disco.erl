@@ -25,8 +25,13 @@
 
 -include_lib("zerolog.hrl").
 
--record(zerolog, {id, message}).
--record(state, {zerolog_master, threshold, prefix, tag}).
+-record(zerolog, {id      :: string(),
+                  message :: string()}).
+
+-record(state, {zerolog_master :: string(),
+                threshold      :: non_neg_integer(),
+                prefix         :: string(),
+                tag            :: string()}).
 
 -define(SERVER, ?MODULE).
 -define(MB, 1024 * 1024).
@@ -55,7 +60,8 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Config) ->
-    start_link(Config, []).
+    Seed =  zerolog_config:get_conf(Config, seed, []),
+    start_link(Config, Seed).
 
 start_link(Config, Seed) when is_atom(Seed) ->
     start_link(Config, {seed, Seed});
@@ -348,7 +354,7 @@ ensure_table() ->
 
 persist_transactional(Message) ->
     T = fun() ->
-        Id = generate_id(Message),
+        Id = generate_id(),
         Data = #zerolog {
             id=Id,
             message=Message
@@ -357,6 +363,6 @@ persist_transactional(Message) ->
     end,
     mnesia:transaction(T).
 
-generate_id(Message) ->
+generate_id() ->
     <<I:160/integer>> = crypto:sha(term_to_binary({make_ref(), now()})), 
     erlang:integer_to_list(I, 16).

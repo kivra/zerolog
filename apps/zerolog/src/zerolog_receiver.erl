@@ -17,7 +17,11 @@
 
 -define(DEF_SERVER, zerolog_server).
 
--record(state, {context, socket}).
+-type erlzmq_socket() :: binary().
+-type erlzmq_context() :: binary().
+
+-record(state, {context :: erlzmq_context(),
+                socket  :: erlzmq_socket()}).
 
 init(Config) ->
     Addr = zerolog_config:get_conf(Config, addr, undefined),

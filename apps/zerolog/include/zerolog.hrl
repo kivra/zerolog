@@ -1,3 +1,3 @@
 
 % Message passing
--record(message, {payload}).
+-record(message, {payload :: string()}).
