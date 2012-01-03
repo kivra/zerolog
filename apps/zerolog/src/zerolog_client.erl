@@ -11,23 +11,23 @@
 -define(DEF_ADDR, "tcp://localhost:2121").
 
 run(N) ->
-	{ok, Context} = erlzmq:context(),
+    {ok, Context} = erlzmq:context(),
     {ok, Socket} = erlzmq:socket(Context, push),
     erlzmq:connect(Socket, ?DEF_ADDR),
-	send_msg(Socket, N),
-	erlzmq:close(Socket),
+    send_msg(Socket, N),
+    erlzmq:close(Socket),
     erlzmq:term(Context),
     ok.
 
 send_msg(_Socket, 0) ->
-	ok;
+    ok;
 
 send_msg(Socket, N) ->
-	Msg = integer_to_list(N) ++ ": Lorem ipsum dolor sit amet, consectetur"
-				" adipiscing elit. Nulla auctor blandit varius. Phasellus"
-				" consequat ornare massa, ac fringilla augue suscipit sit amet",
-	Message = erlang:iolist_to_binary([
-				    protobuffs:encode(1, list_to_binary(Msg), string)
-				]),
-	erlzmq:send(Socket, Message),
-	send_msg(Socket, N-1).
+    Msg = integer_to_list(N) ++ ": Lorem ipsum dolor sit amet, consectetur"
+                " adipiscing elit. Nulla auctor blandit varius. Phasellus"
+                " consequat ornare massa, ac fringilla augue suscipit sit amet",
+    Message = erlang:iolist_to_binary([
+                              protobuffs:encode(1, list_to_binary(Msg), string)
+                          ]),
+    erlzmq:send(Socket, Message),
+    send_msg(Socket, N-1).

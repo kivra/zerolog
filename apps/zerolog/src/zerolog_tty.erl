@@ -16,17 +16,17 @@
 -include_lib("zerolog.hrl").
 
 init(_Config) ->
-	{ok, []}.
+    {ok, []}.
 
 start_link() ->
-	start_link([]).
+    start_link([]).
 
 start_link(Opts) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Opts, []).
 
 handle_call({handle_log, #message{payload=Payload}},
-				_From, State) ->
-	io:format("Prio: ~s", [Payload]),
+                                         _From, State) ->
+    io:format("Prio: ~s", [Payload]),
     {reply, ok, State}.
 
 handle_cast(_Msg, State) ->
@@ -36,7 +36,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-	ok.
+    ok.
     
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.

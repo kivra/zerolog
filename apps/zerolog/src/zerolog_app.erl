@@ -16,21 +16,21 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-	error_logger:info_msg("Starting Zerolog~n"),
-	setup_common(),
+    error_logger:info_msg("Starting Zerolog~n"),
+    setup_common(),
     Ret = zerolog_sup:start_link(),
     gen_server:call(zerolog_server, start_backends),
     gen_server:call(zerolog_server, start_receiver),
-	Ret.
+    Ret.
 
 
 stop(_State) ->
     ok.
 
 setup_common() ->
-	Root = filename:absname(""),
-	DbDir = filename:join(Root, "db"),
-	case filelib:is_file(DbDir) of
-		true -> application:set_env(mnesia, dir, DbDir);
-		false -> ignore
-	end.
+    Root = filename:absname(""),
+    DbDir = filename:join(Root, "db"),
+    case filelib:is_file(DbDir) of
+        true -> application:set_env(mnesia, dir, DbDir);
+        false -> ignore
+    end.

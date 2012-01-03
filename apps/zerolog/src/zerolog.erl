@@ -16,9 +16,9 @@ start_link() ->
 %% @spec start() -> ok
 %% @doc Start the zerolog server.
 start() ->
-	ok = application:start(sasl),
-	ok = application:start(crypto),
-	ok = application:start(inets),
+    ok = application:start(sasl),
+    ok = application:start(crypto),
+    ok = application:start(inets),
     ok = application:start(zerolog).
 
 %% @spec stop() -> ok
@@ -26,5 +26,5 @@ start() ->
 stop() ->
     ok = application:stop(zerolog),
     ok = application:stop(inets),
-	ok = application:stop(crypto),
-	ok = application:stop(sasl).
+    ok = application:stop(crypto),
+    ok = application:stop(sasl).

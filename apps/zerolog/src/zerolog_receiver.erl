@@ -20,15 +20,15 @@
 -record(state, {context, socket}).
 
 init(Config) ->
-	Addr = zerolog_config:get_conf(Config, addr, undefined),
-	{ok, Context} = erlzmq:context(),
- 	{ok, Socket} = erlzmq:socket(Context, pull),
-	ok = erlzmq:bind(Socket, Addr),
-	spawn(fun() -> receive_loop(Socket) end),
-	{ok, #state{context=Context, socket=Socket}}.
+    Addr = zerolog_config:get_conf(Config, addr, undefined),
+    {ok, Context} = erlzmq:context(),
+    {ok, Socket} = erlzmq:socket(Context, pull),
+    ok = erlzmq:bind(Socket, Addr),
+    spawn(fun() -> receive_loop(Socket) end),
+    {ok, #state{context=Context, socket=Socket}}.
 
 start_link() ->
-	start_link([]).
+    start_link([]).
 
 start_link(Opts) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, Opts, []).
@@ -43,7 +43,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, #state{context=Context, socket=Socket}) ->
-	ok = erlzmq:close(Socket),
+    ok = erlzmq:close(Socket),
     erlzmq:term(Context).
     
 code_change(_OldVsn, State, _Extra) ->
@@ -51,7 +51,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Private
 receive_loop(Socket) ->
-	{ok, Payload} = erlzmq:recv(Socket),
-	{{_, Msg}, _} = protobuffs:decode(Payload, bytes),
-	gen_server:call(?DEF_SERVER, {receive_log, #message{payload=Msg}}),
-	receive_loop(Socket).
+    {ok, Payload} = erlzmq:recv(Socket),
+    {{_, Msg}, _} = protobuffs:decode(Payload, bytes),
+    gen_server:call(?DEF_SERVER, {receive_log, #message{payload=Msg}}),
+    receive_loop(Socket).

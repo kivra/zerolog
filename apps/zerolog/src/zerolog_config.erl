@@ -13,21 +13,21 @@
 -define(APP, zerolog).
 
 get_conf(Prop) ->
-	get_conf(Prop, undefined).
+    get_conf(Prop, undefined).
 
 get_conf(Prop, DefVal) ->
-	get_conf(application:get_all_env(), Prop, DefVal).
+    get_conf(application:get_all_env(), Prop, DefVal).
 
 get_conf(Config, Prop, DefVal) ->
-	case proplists:get_value(Prop, Config) of
-		undefined -> DefVal;
-		Value -> Value
-	end.
+    case proplists:get_value(Prop, Config) of
+        undefined -> DefVal;
+        Value -> Value
+    end.
 
 get_db_dir() ->
-	Root = filename:absname(""),
-	DbDir = filename:join(Root, "db"),
-	case filelib:is_file(DbDir) of
-		true -> DbDir;
-		false -> code:priv_dir(?APP)
-	end.
+    Root = filename:absname(""),
+    DbDir = filename:join(Root, "db"),
+    case filelib:is_file(DbDir) of
+        true -> DbDir;
+        false -> code:priv_dir(?APP)
+    end.
