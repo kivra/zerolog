@@ -61,7 +61,7 @@ start_link(Config, Seed) when is_atom(Seed) ->
     start_link(Config, {seed, Seed});
 
 start_link(Config, Opts) ->
-	Nodes =  zerolog_config:get_conf(Config, nodes, ?NODES),
+    Nodes =  zerolog_config:get_conf(Config, nodes, ?NODES),
     gen_leader:start_link(?SERVER, Nodes, [Opts], ?MODULE, Config, []).
 
 %%%===================================================================
@@ -79,11 +79,11 @@ start_link(Config, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 init(Config) ->
-	Threshold = zerolog_config:get_conf(Config, threshold, ?THRESHOLD),
-	ZerologMaster = zerolog_config:get_conf(Config, master, ?THRESHOLD),
-	Prefix =  zerolog_config:get_conf(Config, prefix, ?PREFIX),
-	Tag =  zerolog_config:get_conf(Config, tag, ?TAG),
-	ok = ensure_schema(),
+    Threshold = zerolog_config:get_conf(Config, threshold, ?THRESHOLD),
+    ZerologMaster = zerolog_config:get_conf(Config, master, ?THRESHOLD),
+    Prefix =  zerolog_config:get_conf(Config, prefix, ?PREFIX),
+    Tag =  zerolog_config:get_conf(Config, tag, ?TAG),
+    ok = ensure_schema(),
     ok = mnesia:start(),
     ensure_table(),
     {ok, #state{zerolog_master=ZerologMaster, prefix=Prefix, threshold=Threshold, tag=Tag}}.
@@ -124,7 +124,7 @@ elected(State, _Election, _Node) ->
 %% @end
 %%--------------------------------------------------------------------
 surrendered(State, _Synch, Election) ->
-	?INFO("~p surrendered to ~p.",[node(), gen_leader:leader_node(Election)]),
+    ?INFO("~p surrendered to ~p.",[node(), gen_leader:leader_node(Election)]),
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -155,10 +155,10 @@ handle_leader_call(_Request, _From, State, _Election) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_leader_cast(push_to_ddfs, #state{zerolog_master=ZerologMaster,
-										prefix=Prefix,
-										tag=Tag} = State,
-										_Election) ->
-	db_to_ddfs(ZerologMaster, Prefix, Tag),
+                                        prefix=Prefix,
+                                        tag=Tag} = State,
+                                        _Election) ->
+    db_to_ddfs(ZerologMaster, Prefix, Tag),
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -201,11 +201,11 @@ handle_DOWN(_Node, State, _Election) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({handle_log, #message{payload=Payload}},
-							_From, #state{threshold=Threshold} = State,
-							_Election) ->
-	{atomic,_} = persist_transactional(Payload),
-	push_to_ddfs(Threshold),
-	{reply, ok, State}.
+                            _From, #state{threshold=Threshold} = State,
+                            _Election) ->
+    {atomic,_} = persist_transactional(Payload),
+    push_to_ddfs(Threshold),
+    {reply, ok, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -264,99 +264,99 @@ code_change(_OldVsn, State, _Election, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 push_to_ddfs(Threshold) ->
-	case db_size(Threshold) of
-		time_to_dump ->
-			gen_leader:leader_cast(?MODULE, push_to_ddfs);
-		_ ->
-			ignore
-	end,
-	ok.
+    case db_size(Threshold) of
+        time_to_dump ->
+            gen_leader:leader_cast(?MODULE, push_to_ddfs);
+        _ ->
+            ignore
+    end,
+    ok.
 
 db_to_ddfs(ZerologMaster, Prefix, Tag) ->
-	Filename = write_to_file(),
-	Url = get_put_path(ZerologMaster, Prefix),
-	case ddfs_http:http_put(Filename, Url, ?PUT_WAIT_TIMEOUT) of
-		{ok, DiscoUrl} ->
-			ok = ddfs_put_tag(ZerologMaster, DiscoUrl, Tag),
-			file:delete(Filename);
-		_ -> ok
-	end.
+    Filename = write_to_file(),
+    Url = get_put_path(ZerologMaster, Prefix),
+    case ddfs_http:http_put(Filename, Url, ?PUT_WAIT_TIMEOUT) of
+        {ok, DiscoUrl} ->
+            ok = ddfs_put_tag(ZerologMaster, DiscoUrl, Tag),
+            file:delete(Filename);
+        _ -> ok
+    end.
 
 ddfs_put_tag(ZerologMaster, Url, Tag) ->
-	Addr = ZerologMaster ++ "/ddfs/tag/" ++ Tag,
-	{ok, {{_Version, 200, _Reason}, _Headers, _Body}} =
-					httpc:request(post, {Addr, [], "application/json",
-									"[["++ Url ++"]]"}, [], []),
-	ok.
+    Addr = ZerologMaster ++ "/ddfs/tag/" ++ Tag,
+    {ok, {{_Version, 200, _Reason}, _Headers, _Body}} =
+                    httpc:request(post, {Addr, [], "application/json",
+                                    "[["++ Url ++"]]"}, [], []),
+    ok.
 
 write_to_file() ->
-	{{Year, Month, Day}, {Hour, Minute, Second}} = erlang:localtime(),
-	ID = lists:flatten(io_lib:format("~4..0w~2..0w~2..0w-~2..0w~2..0w~2..0w",
-									[Year, Month, Day, Hour, Minute, Second])),
-	DbDir = zerolog_config:get_db_dir(),
-	File = filename:join([DbDir, ID++".0dmp"]),
-	F = fun() ->
-		{ok, FD} = file:open(File, [write]),
-		write_table_to_file(FD, ?TABLE_NAME),
-	    file:close(FD)
-	end,
-	{atomic, _} = mnesia:transaction(F),
-	File.
+    {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:localtime(),
+    ID = lists:flatten(io_lib:format("~4..0w~2..0w~2..0w-~2..0w~2..0w~2..0w",
+                                    [Year, Month, Day, Hour, Minute, Second])),
+    DbDir = zerolog_config:get_db_dir(),
+    File = filename:join([DbDir, ID++".0dmp"]),
+    F = fun() ->
+        {ok, FD} = file:open(File, [write]),
+        write_table_to_file(FD, ?TABLE_NAME),
+        file:close(FD)
+    end,
+    {atomic, _} = mnesia:transaction(F),
+    File.
 
 write_table_to_file(FD, TableName)->
     I =  fun(#zerolog{message=Message} = Req, _)->
-		file:write(FD, io_lib:format("~s~n",[Message])),
-		mnesia:delete_object(Req)
-	end,
-	case mnesia:is_transaction() of
+        file:write(FD, io_lib:format("~s~n",[Message])),
+        mnesia:delete_object(Req)
+    end,
+    case mnesia:is_transaction() of
         true ->
-        	mnesia:foldl(I, [], TableName);
+            mnesia:foldl(I, [], TableName);
         false -> 
             F = fun({Fun, Tab}) -> mnesia:foldl(Fun, [], Tab) end,
             mnesia:activity(transaction, F, [{I, TableName}], mnesia_frag)
     end.
 
 get_put_path(ZerologMaster, Prefix) ->
-	Addr = ZerologMaster ++ "/ddfs/new_blob/" ++ Prefix,
-	{ok, {{_Version, 200, _Reason}, _Headers, Body}} =
-					httpc:request(Addr),
-	{ok,[_|[{string, _, Url}|_]],_} = erl_scan:string(Body),
-	Url.
+    Addr = ZerologMaster ++ "/ddfs/new_blob/" ++ Prefix,
+    {ok, {{_Version, 200, _Reason}, _Headers, Body}} =
+                    httpc:request(Addr),
+    {ok,[_|[{string, _, Url}|_]],_} = erl_scan:string(Body),
+    Url.
 
 db_size(Threshold) ->
-	F = fun() -> mnesia:table_info(?TABLE_NAME, memory) end,
-	case mnesia:activity(transaction, F ,mnesia_frag) of
-		S when S >= Threshold -> time_to_dump;
-		_ -> ok
-	end.
+    F = fun() -> mnesia:table_info(?TABLE_NAME, memory) end,
+    case mnesia:activity(transaction, F ,mnesia_frag) of
+        S when S >= Threshold -> time_to_dump;
+        _ -> ok
+    end.
 
 ensure_schema() ->
-	case mnesia:create_schema([node()]) of
-    	ok -> ok;
-    	{error, {_, {already_exists, _}}} -> ok;
-    	Error -> Error
-  	end.
+    case mnesia:create_schema([node()]) of
+        ok -> ok;
+        {error, {_, {already_exists, _}}} -> ok;
+        Error -> Error
+      end.
 
 ensure_table() ->
-	case mnesia:create_table(?TABLE_NAME,
-								[{disc_copies, [node()]},
-    								{attributes, record_info(fields, zerolog)}]) of
-    	ok -> ok;
-    	{aborted,{already_exists,?TABLE_NAME}} -> ok;
-    	Error -> Error
-  	end.
+    case mnesia:create_table(?TABLE_NAME,
+                                [{disc_copies, [node()]},
+                                    {attributes, record_info(fields, zerolog)}]) of
+        ok -> ok;
+        {aborted,{already_exists,?TABLE_NAME}} -> ok;
+        Error -> Error
+      end.
 
 persist_transactional(Message) ->
-	T = fun() ->
-		Id = generate_id(Message),
-		Data = #zerolog {
-			id=Id,
-			message=Message
-		},
-		mnesia:write(Data)
-	end,
-	mnesia:transaction(T).
+    T = fun() ->
+        Id = generate_id(Message),
+        Data = #zerolog {
+            id=Id,
+            message=Message
+        },
+        mnesia:write(Data)
+    end,
+    mnesia:transaction(T).
 
 generate_id(Message) ->
-	<<I:160/integer>> = crypto:sha(term_to_binary({make_ref(), now()})), 
+    <<I:160/integer>> = crypto:sha(term_to_binary({make_ref(), now()})), 
     erlang:integer_to_list(I, 16).
