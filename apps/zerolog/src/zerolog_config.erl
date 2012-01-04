@@ -13,7 +13,7 @@
 
 -define(APP, zerolog).
 -define(LOGDIR, "log").
--define(DBDIR, "db").
+-define(DBDIR, "data").
 
 get_conf(Prop) ->
     get_conf(Prop, undefined).
@@ -31,9 +31,4 @@ get_log_dir() ->
 	?LOGDIR.
 
 get_db_dir() ->
-    Root = filename:absname(""),
-    DbDir = filename:join(Root, ?DBDIR),
-    case filelib:is_file(DbDir) of
-        true -> DbDir;
-        false -> code:priv_dir(?APP)
-    end.
+    ?DBDIR.
