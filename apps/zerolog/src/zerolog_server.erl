@@ -16,11 +16,13 @@
      terminate/2, code_change/3]).
 
 -define(DEF_ENABLED_BACKENDS, [zerolog_tty]).
--define(DEF_RECEIVER, zerolog_receiver).
+-define(DEF_ENABLED_RECEIVERS, [zerolog_rest]).
 
 -type backend() :: atom().
+-type receiver() :: atom().
 
--record(state, {backends :: list(backend())}).
+-record(state, {backends :: list(backend()),
+                receivers :: list(receiver())}).
 
 %% API
 start_link() ->
@@ -30,17 +32,13 @@ start_link() ->
 init([]) ->
     Backends = zerolog_config:get_conf(enabled_backends, ?DEF_ENABLED_BACKENDS),
     OrdBackends = ordsets:from_list(Backends),
-    {ok, #state{backends=OrdBackends}}.
+    Receivers = zerolog_config:get_conf(enabled_receivers, ?DEF_ENABLED_RECEIVERS),
+    OrdReceivers = ordsets:from_list(Receivers),
+    spawn(fun() -> attach_childs(Backends) end),
+    spawn(fun() -> attach_childs(Receivers) end),
+    {ok, #state{backends=OrdBackends, receivers=OrdReceivers}}.
 
 %% @private
-handle_call(start_backends, _From, #state{backends = Backends} = State) ->
-    attach_childs(Backends),
-    {reply, ok, State};
-
-handle_call(start_receiver, _From, State) ->
-    attach_childs([?DEF_RECEIVER]),
-    {reply, ok, State};
-
 handle_call({receive_log, Payload}, _From,
             #state{backends = Backends} = State) ->
     receive_log(Payload, Backends),
@@ -68,7 +66,7 @@ attach_childs(Inputs) ->
 		                2000,
 		                worker,
 		                [Input]},
-        {ok, _} = supervisor:start_child(zerolog_sup, ChildSpec)
+        supervisor:start_child(zerolog_sup, ChildSpec)
     end || Input <- Inputs],
     ok.
 

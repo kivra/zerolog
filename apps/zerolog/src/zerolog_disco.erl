@@ -25,13 +25,13 @@
 
 -include_lib("zerolog.hrl").
 
--record(zerolog, {id      :: string(),
-                  message :: string()}).
+-type riak_client() :: term().
 
 -record(state, {zerolog_master :: string(),
                 threshold      :: non_neg_integer(),
                 prefix         :: string(),
-                tag            :: string()}).
+                tag            :: string(),
+                dbclient       :: Client :: riak_client()}).
 
 -define(SERVER, ?MODULE).
 -define(MB, 1024 * 1024).
@@ -40,7 +40,9 @@
 -define(HOUR, 60 * ?MINUTE).
 -define(DAY, 24 * ?HOUR).
 -define(PUT_WAIT_TIMEOUT, 1 * ?MINUTE).
--define(TABLE_NAME, zerolog).
+-define(BUCKET_NAME, <<"zerolog">>).
+-define(BUCKET_SIZE_PROP, bucket_size).
+-define(MD_CTYPE, "application/x-erlang-binary").
 -define(TAG, "data:zerolog").
 -define(NODES, [node()|nodes()]).
 -define(ZEROLOG_MASTER, "http://localhost:8989").
@@ -89,10 +91,9 @@ init(Config) ->
     ZerologMaster = zerolog_config:get_conf(Config, master, ?THRESHOLD),
     Prefix =  zerolog_config:get_conf(Config, prefix, ?PREFIX),
     Tag =  zerolog_config:get_conf(Config, tag, ?TAG),
-    ok = ensure_schema(),
-    ok = mnesia:start(),
-    ensure_table(),
-    {ok, #state{zerolog_master=ZerologMaster, prefix=Prefix, threshold=Threshold, tag=Tag}}.
+    {ok, Client} = riak:local_client(),
+    {ok, #state{zerolog_master=ZerologMaster, prefix=Prefix,
+                threshold=Threshold, tag=Tag, dbclient=Client}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -162,9 +163,10 @@ handle_leader_call(_Request, _From, State, _Election) ->
 %%--------------------------------------------------------------------
 handle_leader_cast(push_to_ddfs, #state{zerolog_master=ZerologMaster,
                                         prefix=Prefix,
-                                        tag=Tag} = State,
+                                        tag=Tag,
+                                        dbclient=Client} = State,
                                         _Election) ->
-    db_to_ddfs(ZerologMaster, Prefix, Tag),
+    db_to_ddfs(ZerologMaster, Prefix, Tag, Client),
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -207,10 +209,11 @@ handle_DOWN(_Node, State, _Election) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({handle_log, #message{payload=Payload}},
-                            _From, #state{threshold=Threshold} = State,
+                            _From, #state{threshold = Threshold,
+                                          dbclient = Client} = State,
                             _Election) ->
-    {atomic,_} = persist_transactional(Payload),
-    push_to_ddfs(Threshold),
+    persist_to_db(Payload, Client),
+    push_to_ddfs(Threshold, Client),
     {reply, ok, State}.
 
 %%--------------------------------------------------------------------
@@ -267,10 +270,10 @@ code_change(_OldVsn, State, _Election, _Extra) ->
 
 
 %%%===================================================================
-%%% Internal functions
+%%% Internal Disco functions
 %%%===================================================================
-push_to_ddfs(Threshold) ->
-    case db_size(Threshold) of
+push_to_ddfs(Threshold, Client) ->
+    case db_size(Threshold, Client) of
         time_to_dump ->
             gen_leader:leader_cast(?MODULE, push_to_ddfs);
         _ ->
@@ -278,8 +281,8 @@ push_to_ddfs(Threshold) ->
     end,
     ok.
 
-db_to_ddfs(ZerologMaster, Prefix, Tag) ->
-    Filename = write_to_file(),
+db_to_ddfs(ZerologMaster, Prefix, Tag, Client) ->
+    Filename = write_to_file(Client),
     Url = get_put_path(ZerologMaster, Prefix),
     case ddfs_http:http_put(Filename, Url, ?PUT_WAIT_TIMEOUT) of
         {ok, DiscoUrl} ->
@@ -295,33 +298,6 @@ ddfs_put_tag(ZerologMaster, Url, Tag) ->
                                     "[["++ Url ++"]]"}, [], []),
     ok.
 
-write_to_file() ->
-    {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:localtime(),
-    ID = lists:flatten(io_lib:format("~4..0w~2..0w~2..0w-~2..0w~2..0w~2..0w",
-                                    [Year, Month, Day, Hour, Minute, Second])),
-    DbDir = zerolog_config:get_db_dir(),
-    File = filename:join([DbDir, ID++".0dmp"]),
-    F = fun() ->
-        {ok, FD} = file:open(File, [write]),
-        write_table_to_file(FD, ?TABLE_NAME),
-        file:close(FD)
-    end,
-    {atomic, _} = mnesia:transaction(F),
-    File.
-
-write_table_to_file(FD, TableName)->
-    I =  fun(#zerolog{message=Message} = Req, _)->
-        file:write(FD, io_lib:format("~s~n",[Message])),
-        mnesia:delete_object(Req)
-    end,
-    case mnesia:is_transaction() of
-        true ->
-            mnesia:foldl(I, [], TableName);
-        false -> 
-            F = fun({Fun, Tab}) -> mnesia:foldl(Fun, [], Tab) end,
-            mnesia:activity(transaction, F, [{I, TableName}], mnesia_frag)
-    end.
-
 get_put_path(ZerologMaster, Prefix) ->
     Addr = ZerologMaster ++ "/ddfs/new_blob/" ++ Prefix,
     {ok, {{_Version, 200, _Reason}, _Headers, Body}} =
@@ -329,40 +305,57 @@ get_put_path(ZerologMaster, Prefix) ->
     {ok,[_|[{string, _, Url}|_]],_} = erl_scan:string(Body),
     Url.
 
-db_size(Threshold) ->
-    F = fun() -> mnesia:table_info(?TABLE_NAME, memory) end,
-    case mnesia:activity(transaction, F ,mnesia_frag) of
+%%%===================================================================
+%%% Internal Riak functions
+%%%===================================================================
+
+write_to_file(Client) ->
+    {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:localtime(),
+    ID = lists:flatten(io_lib:format("~4..0w~2..0w~2..0w-~2..0w~2..0w~2..0w",
+                                    [Year, Month, Day, Hour, Minute, Second])),
+    DbDir = zerolog_config:get_db_dir(),
+    File = filename:join([DbDir, ID++".0dmp"]),
+    {ok, FD} = file:open(File, [write]),
+    {ok, Keys} = Client:list_keys(?BUCKET_NAME),
+    [begin
+        {ok, Obj} = Client:get(?BUCKET_NAME, Key),
+        Message = binary_to_list(riak_object:get_value(Obj)),
+        case file:write(FD, io_lib:format("~s~n",[Message])) of
+            ok -> ok = Client:delete(?BUCKET_NAME, Key);
+            _ -> ignore
+        end
+    end || Key <- Keys],
+    ok = file:close(FD),
+    ok = Client:set_bucket(?BUCKET_NAME,
+                           [{?BUCKET_SIZE_PROP, 0}]),
+    File.
+
+db_size(Threshold, Client) ->
+    BucketProps = Client:get_bucket(?BUCKET_NAME),
+    case proplists:get_value(?BUCKET_SIZE_PROP, BucketProps) of
+        undefined -> ok;
         S when S >= Threshold -> time_to_dump;
         _ -> ok
     end.
 
-ensure_schema() ->
-    case mnesia:create_schema([node()]) of
-        ok -> ok;
-        {error, {_, {already_exists, _}}} -> ok;
-        Error -> Error
-      end.
+persist_to_db(Message, Client) ->
+    Key = generate_id(),
+    Obj = riak_object:new(?BUCKET_NAME, Key, Message, ?MD_CTYPE),
+    ok= Client:put(Obj),
+    update_db_size(Message, Client).
 
-ensure_table() ->
-    case mnesia:create_table(?TABLE_NAME,
-                                [{disc_copies, [node()]},
-                                    {attributes, record_info(fields, zerolog)}]) of
-        ok -> ok;
-        {aborted,{already_exists,?TABLE_NAME}} -> ok;
-        Error -> Error
-      end.
+update_db_size(Message, Client) ->
+    BucketProps = Client:get_bucket(?BUCKET_NAME),
+    update_db_size(Message, Client,
+        proplists:get_value(?BUCKET_SIZE_PROP, BucketProps)).
 
-persist_transactional(Message) ->
-    T = fun() ->
-        Id = generate_id(),
-        Data = #zerolog {
-            id=Id,
-            message=Message
-        },
-        mnesia:write(Data)
-    end,
-    mnesia:transaction(T).
+update_db_size(Message, Client, undefined) ->
+    update_db_size(Message, Client, 0);
+update_db_size(Message, Client, Previous) ->
+    Size = byte_size(Message)+Previous,
+    Client:set_bucket(?BUCKET_NAME,
+                      [{?BUCKET_SIZE_PROP, Size}]).
 
 generate_id() ->
     <<I:160/integer>> = crypto:sha(term_to_binary({make_ref(), now()})), 
-    erlang:integer_to_list(I, 16).
+    list_to_binary(integer_to_list(I, 16)).

@@ -1,7 +1,7 @@
 %% @author Bip Thelin <bip.thelin@evolope.se>
 %% @copyright 2010-2011 Evolope.
 
--module(zerolog_receiver).
+-module(zerolog_zeromq).
 -author('Bip Thelin <bip.thelin@evolope.se>').
 
 -behaviour(gen_server).

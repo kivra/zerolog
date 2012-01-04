@@ -26,7 +26,7 @@ start_link(Opts) ->
 
 handle_call({handle_log, #message{payload=Payload}},
                                          _From, State) ->
-    io:format("Prio: ~s", [Payload]),
+    io:format("Message: ~s", [Payload]),
     {reply, ok, State}.
 
 handle_cast(_Msg, State) ->

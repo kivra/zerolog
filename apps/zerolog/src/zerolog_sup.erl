@@ -30,6 +30,6 @@ start_link() ->
 
 init([]) ->
     Children = [
-                ?CHILD(zerolog_server, worker) 
+                ?CHILD(zerolog_server, worker)
                ],
     {ok, { {one_for_one, 5, 10}, Children} }.

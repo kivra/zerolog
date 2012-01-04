@@ -9,7 +9,9 @@
                   stdlib,
                   sasl,
                   crypto,
-                  inets
+                  inets,
+                  riak_core,
+                  riak_kv
                  ]},
   {mod, { zerolog_app, []}},
   {env, []}

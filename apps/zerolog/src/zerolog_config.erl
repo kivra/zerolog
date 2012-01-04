@@ -8,9 +8,12 @@
 -export([get_conf/1,
          get_conf/2,
          get_conf/3,
+         get_log_dir/0,
          get_db_dir/0]).
 
 -define(APP, zerolog).
+-define(LOGDIR, "log").
+-define(DBDIR, "db").
 
 get_conf(Prop) ->
     get_conf(Prop, undefined).
@@ -24,9 +27,12 @@ get_conf(Config, Prop, DefVal) ->
         Value -> Value
     end.
 
+get_log_dir() ->
+	?LOGDIR.
+
 get_db_dir() ->
     Root = filename:absname(""),
-    DbDir = filename:join(Root, "db"),
+    DbDir = filename:join(Root, ?DBDIR),
     case filelib:is_file(DbDir) of
         true -> DbDir;
         false -> code:priv_dir(?APP)
