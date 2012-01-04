@@ -68,17 +68,34 @@ To get started, you need to:
 #+BEGIN_SRC erlang
 [
     {zerolog, [
-	    {enabled_backends, [zerolog_tty, zerolog_disco]},
-		{zerolog_tty, []},
-	    {zerolog_disco, [
-	    					{nodes, ['zerolog@127.0.0.1']},
-		    				{threshold, 5},
-		    				{master, "http://localhost:8989"},
-		    				{prefix, "0b"},
-		    				{tag, "data:zerolog"}
-	    				]},
-	    {zerolog_receiver, [{addr, "tcp://*:2121"}]}
-	]}
+        {enabled_backends, [zerolog_tty, zerolog_disco]},
+        {enabled_receivers, [zerolog_rest, zerolog_zeromq]},
+        {zerolog_tty, []},
+        {zerolog_disco, [
+	    					%{nodes, ['zerolog@127.0.0.1']},
+							% 64MB (64x1024x1024)
+							{threshold, 67108864},
+
+                            % Which nodes in the cluster 
+                            %{nodes, ['zerolog@127.0.0.1', 'zerolog@an.ot.her.ip']},
+                            %
+                            % Which master to join and announce itself at
+                            %{seed, 'zerolog@an.ot.her.ip'}
+                            {threshold, 5},
+                            {master, "http://localhost:8989"},
+                            {prefix, "0b"},
+                            {tag, "data:zerolog"}
+                        ]},
+        {zerolog_zeromq, [{addr, "tcp://*:2121"}]},
+        {zerolog_rest, [
+                        {ip, "127.0.0.1"},
+                        {port, 2122}
+        ]}
+    ]},
+
+%% Nothing needs to be edited below.
+%% ===================================================================
+[...]
 ].
 #+END_SRC
 
