@@ -6,18 +6,19 @@
   using Zerolog.  For more information, browse the following files:
  
     - README:  this file
-    - src/    the source tree for Zerolog
-    - priv/app.config: Zerolog configuration file
+    - apps/zerolog/src/    the source tree for Zerolog
+    - rel/zerolog/etc/app.config: Zerolog configuration file
 
 * Design
 
   For obvious reasons Zerolog uses a client-server architecture where clients
-  sends the logs as Protocol Buffers over ZeroMQ to one or many Zerolog servers.
-  Zerolog can be setup in a cluster to avoid single point of failures. Also the
-  ZeroMQ transport layer will keep track of send messages and even buffer to
-  memory and then to disk if the Zerolog server can't be reached.
+  sends the logs as Protocol Buffers over ZeroMQ or as HTTP POST to a REST service
+  to one or many Zerolog servers. Zerolog can be setup in a cluster to avoid
+  single point of failures. Also the ZeroMQ transport layer will keep track of
+  send messages and even buffer to memory and then to disk if the Zerolog server
+  can't be reached.
 
-  Zerolog uses a clustered caching database to buffer incoming log messages and
+  Zerolog uses a clustered caching database (Riak) to buffer incoming log messages and
   when reaching a set =threshold= it will push the whole set to disco as one file.
 
 * Motivation
@@ -27,10 +28,10 @@
   complex issues but done right they should be easy enough to install and
   use. After looking into Chukwa, Flume and others we felt that we could
   accomplish basically the same but with 1/10th the code.
-  Less code = less buggs.
   
-  And when doing this we finally gave up Hadoop and moved to Disco and
-  ironically none of the above work with Disco so this made all the more sense.
+  Around the same time we finally gave up on Hadoop and moved to Disco and
+  ironically none of the above solutions work with Disco so rolling our own made
+  all the more sense.
 
 * Quick Start
 
@@ -57,10 +58,6 @@ To get started, you need to:
    $ make rel
 #+END_EXAMPLE
 
-  If anything goes wrong and you're sure you have a working Erlang installation
-  it probably has something to do with building bindings for ZeroMQ. If so please
-  google that.
-
 ** Configuring Zerolog
 
   Everything needed to configure Zerolog is in the =rel/zerolog/etc/app.config= file.
@@ -72,16 +69,15 @@ To get started, you need to:
         {enabled_receivers, [zerolog_rest, zerolog_zeromq]},
         {zerolog_tty, []},
         {zerolog_disco, [
-	    					%{nodes, ['zerolog@127.0.0.1']},
-							% 64MB (64x1024x1024)
-							{threshold, 67108864},
+                            % 64MB (64x1024x1024)
+                            {threshold, 67108864},
 
                             % Which nodes in the cluster 
                             %{nodes, ['zerolog@127.0.0.1', 'zerolog@an.ot.her.ip']},
                             %
                             % Which master to join and announce itself at
                             %{seed, 'zerolog@an.ot.her.ip'}
-                            {threshold, 5},
+
                             {master, "http://localhost:8989"},
                             {prefix, "0b"},
                             {tag, "data:zerolog"}
@@ -100,7 +96,9 @@ To get started, you need to:
 #+END_SRC
 
   Zerolog is configured to use one or many backends, they are enabled when put
-  under =enabled_backends= and configured in each of their entries.
+  under =enabled_backends= and configured in each of their entries. Zerolog can
+  also use different receivers for incoming log messages, they are enabled when
+  put under =enabled_receivers=.
 
 ** Starting Zerolog
 
@@ -117,6 +115,7 @@ To get started, you need to:
    Now that you have a functional server, let's try storing some logs in
    it.
 
+* Zeromq example:
 #+BEGIN_EXAMPLE
    $ cd $ZEROLOG
    $ erl -pa deps/*/ebin -pa apps/zerolog/ebin
@@ -126,15 +125,76 @@ To get started, you need to:
    1> zerolog_client:run(1).
 #+END_EXAMPLE
 
-or with the REST interface:
+   =zerolog_client= is a small client test library with one function =run/1= which takes one argument
+   number of time to send, so =zerolog_client:run(10)= would send 10 messages.
+
+* REST example:
 #+BEGIN_EXAMPLE
    $ curl -X POST -d "testdata" http://127.0.0.1:2122/zerolog
    ok
 #+END_EXAMPLE
 
-   =zerolog_client= is a small client test library with one function =run/1= which takes one argument
-   number of time to send, so =zerolog_client:run(10)= would send 10 messages.
+** Setting up a Zerolog cluster:
+  Zerolog is designed and meant to be run in a cluster. When run in a cluster you can configure your client
+  to send to any of the configured Zerolog servers. They will (when using the Disco backend) keep a clustered
+  database in sync where all the log messages get stored until the specified threshold has been reached after
+  which it pushes everything in to Disco and clears the pushed log messages from the database.
 
+  Setting up a Zerolog cluster is meant to be dirt simple and robust. When running in a cluster make sure you
+  have correct ip adresses and erlang cookies set to be able to for the cluster to talk to each other. Editing
+  the file =rel/zerolog/etc/vm.args= and change the parameters =-name zerolog@127.0.0.1= and
+  =-setcookie zerolog= to match the ip of your machineand secret cookie used to secure your erlang nodes.
+
+  With default settings in your app.config you can start up the first zerolog server in the cluster. Then you
+  can go on to configure and start up the remaining machines in the Zerolog cluster. When starting up the
+  first machine you should see something like:
+#+BEGIN_EXAMPLE
+=INFO REPORT==== 5-Jan-2012::14:02:51 ===
+Starting Zerolog
+
+=INFO REPORT==== 5-Jan-2012::14:02:51 ===
+'zerolog@10.0.0.1' elected
+#+END_EXAMPLE
+
+
+  On the next machine open =app.config= and edit the section below to match your cluster. Also, don't forget
+  to set the correct values in =vm.args= as well.
+
+#+BEGIN_SRC erlang
+[
+        {zerolog_disco, [
+                            % Which nodes in the cluster 
+                            {nodes, ['zerolog@10.0.0.1', 'zerolog@10.0.0.2']},
+                            %
+                            % Which master to join and announce itself at
+                            {seed, 'zerolog@10.0.0.1'}
+[...]
+].
+#+END_SRC
+
+  The nodes specified under ={nodes, []}= are the other nodes in the cluster. The node specified under
+  ={seed, 'node'}= is the node in the cluster to initialy register itself with. When you startup the second
+  node you should something like:
+#+BEGIN_EXAMPLE
+=INFO REPORT==== 5-Jan-2012::14:02:51 ===
+Starting Zerolog
+
+=INFO REPORT==== 5-Jan-2012::14:02:51 ===
+'zerolog@10.0.0.2' surrendered to 'zerolog@10.0.0.1'.
+#+END_EXAMPLE
+
+and on the first node you should see something like:
+#+BEGIN_EXAMPLE
+=INFO REPORT==== 5-Jan-2012::13:47:26 ===
+'zerolog@10.0.0.1' elected
+
+=INFO REPORT==== 5-Jan-2012::13:47:26 ===
+Sent join request to Riak node: 'zerolog@10.0.0.2'
+#+END_EXAMPLE
+
+you can now execute =riak_core_status:ringready().= which should print all the nodes in the database cluster.
+
+* Client libraries:
    As of this writing these are the ready made options:
    - Alogger (with the Zerolog backend configured): [[https://github.com/bipthelin/alogger]]
    - REST interface at http://zerolog.ip/zerolog accepts POST and the message
