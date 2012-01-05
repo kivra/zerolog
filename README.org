@@ -12,12 +12,13 @@
 * Design
 
   For obvious reasons Zerolog uses a client-server architecture where clients
-  sends the logs as Protocol Buffers over ZeroMQ to one or many Zerolog servers.
-  Zerolog can be setup in a cluster to avoid single point of failures. Also the
-  ZeroMQ transport layer will keep track of send messages and even buffer to
-  memory and then to disk if the Zerolog server can't be reached.
+  sends the logs as Protocol Buffers over ZeroMQ or as HTTP POST to a REST service
+  to one or many Zerolog servers. Zerolog can be setup in a cluster to avoid
+  single point of failures. Also the ZeroMQ transport layer will keep track of
+  send messages and even buffer to memory and then to disk if the Zerolog server
+  can't be reached.
 
-  Zerolog uses a clustered caching database to buffer incoming log messages and
+  Zerolog uses a clustered caching database (Riak) to buffer incoming log messages and
   when reaching a set =threshold= it will push the whole set to disco as one file.
 
 * Motivation
@@ -27,10 +28,10 @@
   complex issues but done right they should be easy enough to install and
   use. After looking into Chukwa, Flume and others we felt that we could
   accomplish basically the same but with 1/10th the code.
-  Less code = less buggs.
   
-  And when doing this we finally gave up Hadoop and moved to Disco and
-  ironically none of the above work with Disco so this made all the more sense.
+  Around the same time we finally gave up on Hadoop and moved to Disco and
+  ironically none of the above solutions work with Disco so rolling our own made
+  all the more sense.
 
 * Quick Start
 
@@ -57,10 +58,6 @@ To get started, you need to:
    $ make rel
 #+END_EXAMPLE
 
-  If anything goes wrong and you're sure you have a working Erlang installation
-  it probably has something to do with building bindings for ZeroMQ. If so please
-  google that.
-
 ** Configuring Zerolog
 
   Everything needed to configure Zerolog is in the =rel/zerolog/etc/app.config= file.
@@ -72,9 +69,9 @@ To get started, you need to:
         {enabled_receivers, [zerolog_rest, zerolog_zeromq]},
         {zerolog_tty, []},
         {zerolog_disco, [
-	    					%{nodes, ['zerolog@127.0.0.1']},
-							% 64MB (64x1024x1024)
-							{threshold, 67108864},
+                            %{nodes, ['zerolog@127.0.0.1']},
+                            % 64MB (64x1024x1024)
+                            {threshold, 67108864},
 
                             % Which nodes in the cluster 
                             %{nodes, ['zerolog@127.0.0.1', 'zerolog@an.ot.her.ip']},
@@ -100,7 +97,9 @@ To get started, you need to:
 #+END_SRC
 
   Zerolog is configured to use one or many backends, they are enabled when put
-  under =enabled_backends= and configured in each of their entries.
+  under =enabled_backends= and configured in each of their entries. Zerolog can
+  also use different receivers for incoming log messages, they are enabled when
+  put under =enabled_receivers=.
 
 ** Starting Zerolog
 
@@ -117,6 +116,7 @@ To get started, you need to:
    Now that you have a functional server, let's try storing some logs in
    it.
 
+* Zeromq example:
 #+BEGIN_EXAMPLE
    $ cd $ZEROLOG
    $ erl -pa deps/*/ebin -pa apps/zerolog/ebin
@@ -126,15 +126,16 @@ To get started, you need to:
    1> zerolog_client:run(1).
 #+END_EXAMPLE
 
-or with the REST interface:
+   =zerolog_client= is a small client test library with one function =run/1= which takes one argument
+   number of time to send, so =zerolog_client:run(10)= would send 10 messages.
+
+* REST example:
 #+BEGIN_EXAMPLE
    $ curl -X POST -d "testdata" http://127.0.0.1:2122/zerolog
    ok
 #+END_EXAMPLE
 
-   =zerolog_client= is a small client test library with one function =run/1= which takes one argument
-   number of time to send, so =zerolog_client:run(10)= would send 10 messages.
-
+* Client libraries:
    As of this writing these are the ready made options:
    - Alogger (with the Zerolog backend configured): [[https://github.com/bipthelin/alogger]]
    - REST interface at http://zerolog.ip/zerolog accepts POST and the message
