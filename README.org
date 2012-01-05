@@ -126,8 +126,15 @@ To get started, you need to:
    1> zerolog_client:run(1).
 #+END_EXAMPLE
 
+or with the REST interface:
+#+BEGIN_EXAMPLE
+   $ curl -X POST -d "testdata" http://127.0.0.1:2122/zerolog
+   ok
+#+END_EXAMPLE
+
    =zerolog_client= is a small client test library with one function =run/1= which takes one argument
    number of time to send, so =zerolog_client:run(10)= would send 10 messages.
 
    As of this writing these are the ready made options:
    - Alogger (with the Zerolog backend configured): [[https://github.com/bipthelin/alogger]]
+   - REST interface at http://zerolog.ip/zerolog accepts POST and the message
