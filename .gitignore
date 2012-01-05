@@ -9,3 +9,4 @@ rel/zerolog
 *@127.0.0.1
 *.plt
 log
+data

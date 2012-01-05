@@ -117,8 +117,9 @@ elected(State, _Election, undefined) ->
 %% @spec elected(State, Election, Node) -> {ok, Synch, State}
 %% @end
 %%--------------------------------------------------------------------
-elected(State, _Election, _Node) ->
+elected(State, _Election, Node) ->
     ?INFO("~p elected",[node()]),
+    join_cluster(Node),
     {reply, [], State}.
 
 %%--------------------------------------------------------------------
@@ -193,7 +194,13 @@ from_leader(_Synch, State, _Election) ->
 %%                                  {ok, Broadcast, State} |
 %% @end
 %%--------------------------------------------------------------------
-handle_DOWN(_Node, State, _Election) ->
+handle_DOWN(Node, State, _Election) ->
+    case riak_core:remove_from_cluster(Node) of
+	    ok ->
+            ?INFO("Removed node ~p from Riak cluster",[Node]);
+        {error, not_member} ->
+            ignore
+    end,
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -214,7 +221,10 @@ handle_call({handle_log, #message{payload=Payload}},
                             _Election) ->
     persist_to_db(Payload, Client),
     push_to_ddfs(Threshold, Client),
-    {reply, ok, State}.
+    {reply, ok, State};
+
+handle_call(_Request, _From, State, _Election) ->
+    {reply, ok, State}.	
 
 %%--------------------------------------------------------------------
 %% @private
@@ -308,6 +318,9 @@ get_put_path(ZerologMaster, Prefix) ->
 %%%===================================================================
 %%% Internal Riak functions
 %%%===================================================================
+join_cluster(Node) ->
+    ok = riak_core:join(Node),
+    ?INFO("Sent join request to Riak node: ~p~n", [Node]).
 
 write_to_file(Client) ->
     {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:localtime(),
