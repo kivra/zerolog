@@ -31,6 +31,7 @@
                 threshold      :: non_neg_integer(),
                 prefix         :: string(),
                 tag            :: string(),
+                seed           :: atom(),
                 dbclient       :: Client :: riak_client()}).
 
 -define(SERVER, ?MODULE).
@@ -62,14 +63,14 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Config) ->
-    Seed =  zerolog_config:get_conf(Config, seed, []),
+    Seed = zerolog_config:get_conf(Config, seed, []),
     start_link(Config, Seed).
 
 start_link(Config, Seed) when is_atom(Seed) ->
     start_link(Config, {seed, Seed});
 
 start_link(Config, Opts) ->
-    Nodes =  zerolog_config:get_conf(Config, nodes, ?NODES),
+    Nodes = zerolog_config:get_conf(Config, nodes, ?NODES),
     gen_leader:start_link(?SERVER, Nodes, [Opts], ?MODULE, Config, []).
 
 %%%===================================================================
@@ -91,8 +92,9 @@ init(Config) ->
     ZerologMaster = zerolog_config:get_conf(Config, master, ?THRESHOLD),
     Prefix =  zerolog_config:get_conf(Config, prefix, ?PREFIX),
     Tag =  zerolog_config:get_conf(Config, tag, ?TAG),
+    Seed =  zerolog_config:get_conf(Config, seed, []),
     {ok, Client} = riak:local_client(),
-    {ok, #state{zerolog_master=ZerologMaster, prefix=Prefix,
+    {ok, #state{zerolog_master=ZerologMaster, prefix=Prefix, seed=Seed,
                 threshold=Threshold, tag=Tag, dbclient=Client}}.
 
 %%--------------------------------------------------------------------
@@ -117,9 +119,8 @@ elected(State, _Election, undefined) ->
 %% @spec elected(State, Election, Node) -> {ok, Synch, State}
 %% @end
 %%--------------------------------------------------------------------
-elected(State, _Election, Node) ->
+elected(State, _Election, _Node) ->
     ?INFO("~p elected",[node()]),
-    join_cluster(Node),
     {reply, [], State}.
 
 %%--------------------------------------------------------------------
@@ -131,8 +132,9 @@ elected(State, _Election, Node) ->
 %% @spec surrendered(State, Synch, Election) -> {ok, State}
 %% @end
 %%--------------------------------------------------------------------
-surrendered(State, _Synch, Election) ->
+surrendered(#state{seed = Seed} = State, _Synch, Election) ->
     ?INFO("~p surrendered to ~p.",[node(), gen_leader:leader_node(Election)]),
+    join_cluster(Seed),
     {ok, State}.
 
 %%--------------------------------------------------------------------
@@ -319,8 +321,12 @@ get_put_path(ZerologMaster, Prefix) ->
 %%% Internal Riak functions
 %%%===================================================================
 join_cluster(Node) ->
-    ok = riak_core:join(Node),
-    ?INFO("Sent join request to Riak node: ~p~n", [Node]).
+    case riak_core:join(Node) of
+	    ok ->
+            ?INFO("Sent join request to Riak node: ~p~n", [Node]);
+        _ ->
+            ignore
+    end.
 
 write_to_file(Client) ->
     {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:localtime(),

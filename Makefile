@@ -18,7 +18,7 @@ app:
 	@./rebar compile skip_deps=true
 
 webstart: app
-	exec erl -pa $(PWD)/apps/zerolog/ebin -pa $(PWD)/deps/*/ebin -name zerolog@127.0.0.1 -config $(PWD)/apps/zerolog/priv/app.config -s $(APP)
+	exec erl -pa $(PWD)/apps/zerolog/ebin -pa $(PWD)/deps/*/ebin -setcookie zerolog -name zerolog@127.0.0.1 -config $(PWD)/apps/zerolog/priv/app.config -s $(APP)
 
 clean:
 	@./rebar clean
