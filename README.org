@@ -74,9 +74,6 @@ To get started, you need to:
 
                             % Which nodes in the cluster 
                             %{nodes, ['zerolog@127.0.0.1', 'zerolog@an.ot.her.ip']},
-                            %
-                            % Which master to join and announce itself at
-                            %{seed, 'zerolog@an.ot.her.ip'}
 
                             {master, "http://localhost:8989"},
                             {prefix, "0b"},
@@ -165,15 +162,11 @@ Starting Zerolog
         {zerolog_disco, [
                             % Which nodes in the cluster 
                             {nodes, ['zerolog@10.0.0.1', 'zerolog@10.0.0.2']},
-                            %
-                            % Which master to join and announce itself at
-                            {seed, 'zerolog@10.0.0.1'}
 [...]
 ].
 #+END_SRC
 
-  The nodes specified under ={nodes, []}= are the other nodes in the cluster. The node specified under
-  ={seed, 'node'}= is the node in the cluster to initialy register itself with. When you startup the second
+  The nodes specified under ={nodes, []}= are the other nodes in the cluster. When you startup the second
   node you should something like:
 #+BEGIN_EXAMPLE
 =INFO REPORT==== 5-Jan-2012::14:02:51 ===
@@ -181,12 +174,6 @@ Starting Zerolog
 
 =INFO REPORT==== 5-Jan-2012::14:02:51 ===
 'zerolog@10.0.0.2' surrendered to 'zerolog@10.0.0.1'.
-#+END_EXAMPLE
-
-and on the first node you should see something like:
-#+BEGIN_EXAMPLE
-=INFO REPORT==== 5-Jan-2012::13:47:26 ===
-'zerolog@10.0.0.1' elected
 
 =INFO REPORT==== 5-Jan-2012::13:47:26 ===
 Sent join request to Riak node: 'zerolog@10.0.0.2'
