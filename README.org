@@ -176,7 +176,7 @@ Starting Zerolog
 'zerolog@10.0.0.2' surrendered to 'zerolog@10.0.0.1'.
 
 =INFO REPORT==== 5-Jan-2012::13:47:26 ===
-Sent join request to Riak node: 'zerolog@10.0.0.2'
+Sent join request to Riak node: 'zerolog@10.0.0.1'
 #+END_EXAMPLE
 
 you can now execute =riak_core_status:ringready().= which should print all the nodes in the database cluster.
