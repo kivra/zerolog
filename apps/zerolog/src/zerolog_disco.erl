@@ -63,11 +63,14 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link(Config) ->
-    Seed = zerolog_config:get_conf(Config, seed, []),
+    Nodes = zerolog_config:get_conf(Config, nodes, []),
+    Seed = get_seed(Nodes),
     start_link(Config, Seed).
 
 start_link(Config, Seed) when is_atom(Seed) ->
-    start_link(Config, {seed, Seed});
+    SeedProp = {seed, Seed},
+    Config2 = [Config, SeedProp],
+    start_link(Config2, SeedProp);
 
 start_link(Config, Opts) ->
     Nodes = zerolog_config:get_conf(Config, nodes, ?NODES),
@@ -375,6 +378,19 @@ update_db_size(Message, Client, Previous) ->
     Client:set_bucket(?BUCKET_NAME,
                       [{?BUCKET_SIZE_PROP, Size}]).
 
+%%%===================================================================
+%%% Internal Riak functions
+%%%===================================================================
 generate_id() ->
     <<I:160/integer>> = crypto:sha(term_to_binary({make_ref(), now()})), 
     list_to_binary(integer_to_list(I, 16)).
+
+get_seed([]) ->
+    [];
+get_seed([H|T]) when H =:= node() ->
+    get_seed(T);
+get_seed([H|T]) ->
+    case net_adm:ping(H) of
+	    pong -> H;
+	    pang -> get_seed(T)
+	end.
