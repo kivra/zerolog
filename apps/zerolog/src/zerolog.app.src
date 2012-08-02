@@ -22,7 +22,7 @@
 {application, zerolog,
  [
   {description, "Log transport that just works with zero effort."},
-  {vsn, "0.1"},
+  {vsn, git},
   {modules, []},
   {registered, []},
   {applications, [

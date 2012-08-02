@@ -2,7 +2,7 @@
 -name zerolog@127.0.0.1
 
 ## Cookie for distributed erlang
--setcookie zerolog
+-setcookie 1e1558ff-39a8-4918-b3e2-9259d492066c
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
 ## (Disabled by default..use with caution!)

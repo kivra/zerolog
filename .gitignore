@@ -5,7 +5,7 @@ Mnesia*
 *.beam
 erl_crash.dump
 .eunit
-rel/zerolog
+rel/zerolog*
 *@127.0.0.1
 *.plt
 log
