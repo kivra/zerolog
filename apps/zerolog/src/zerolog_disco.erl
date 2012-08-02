@@ -340,12 +340,16 @@ write_to_file(Client) ->
     {ok, FD} = file:open(File, [write]),
     {ok, Keys} = Client:list_keys(?BUCKET_NAME),
     [begin
-        {ok, Obj} = Client:get(?BUCKET_NAME, Key),
-        Message = binary_to_list(riak_object:get_value(Obj)),
-        case file:write(FD, io_lib:format("~s~n",[Message])) of
-            ok -> ok = Client:delete(?BUCKET_NAME, Key);
-            _ -> ignore
-        end
+         case Client:get(?BUCKET_NAME, Key) of
+             {ok, Obj} ->
+                 Message = binary_to_list(riak_object:get_value(Obj)),
+                 case file:write(FD, io_lib:format("~s~n",[Message])) of
+                     ok -> ok = Client:delete(?BUCKET_NAME, Key);
+                     _ -> ignored
+                 end;
+             _ ->
+                 ignored
+         end
     end || Key <- Keys],
     ok = file:close(FD),
     ok = Client:set_bucket(?BUCKET_NAME,
