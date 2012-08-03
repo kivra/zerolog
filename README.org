@@ -39,7 +39,7 @@
   just
 
 #+BEGIN_EXAMPLE
-   $ git clone git://github.com/bipthelin/zerolog.git
+   $ git clone git://github.com/kivra/zerolog.git
 #+END_EXAMPLE
 
 To get started, you need to:
