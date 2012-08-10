@@ -223,7 +223,7 @@ from_leader(_Synch, State, _Election) ->
 %%--------------------------------------------------------------------
 handle_DOWN(Node, State, _Election) ->
     case riak_core:remove_from_cluster(Node) of
-	    ok ->
+        ok ->
             ?INFO("Removed node ~p from Riak cluster",[Node]);
         {error, not_member} ->
             ignore
@@ -251,7 +251,7 @@ handle_call({handle_log, #message{payload=Payload}},
     {reply, ok, State};
 
 handle_call(_Request, _From, State, _Election) ->
-    {reply, ok, State}.	
+    {reply, ok, State}. 
 
 %%--------------------------------------------------------------------
 %% @private
@@ -319,6 +319,7 @@ push_to_ddfs(Threshold, Client) ->
     ok.
 
 db_to_ddfs(ZerologMaster, Prefix, Tag, Client) ->
+    %% TODO: Go through any stale *.0dmp files and dumpt them to ddfs
     Filename = write_to_file(Client),
     Url = get_put_path(ZerologMaster, Prefix),
     case ddfs_http:http_put(Filename, Url, ?PUT_WAIT_TIMEOUT) of
@@ -347,7 +348,7 @@ get_put_path(ZerologMaster, Prefix) ->
 %%%===================================================================
 join_cluster(Node) ->
     case riak_core:join(Node) of
-	    ok ->
+        ok ->
             ?INFO("Sent join request to Riak node: ~p~n", [Node]);
         _ ->
             ignore
@@ -389,7 +390,7 @@ db_size(Threshold, Client) ->
 persist_to_db(Message, Client) ->
     Key = generate_id(),
     Obj = riak_object:new(?BUCKET_NAME, Key, Message, ?MD_CTYPE),
-    ok= Client:put(Obj),
+    ok = Client:put(Obj),
     update_db_size(Message, Client).
 
 update_db_size(Message, Client) ->
@@ -417,6 +418,6 @@ get_seed([H|T]) when H =:= node() ->
     get_seed(T);
 get_seed([H|T]) ->
     case net_adm:ping(H) of
-	    pong -> H;
-	    pang -> get_seed(T)
-	end.
+        pong -> H;
+        pang -> get_seed(T)
+    end.

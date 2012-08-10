@@ -36,8 +36,8 @@ start_link() ->
 %% @spec start() -> ok
 %% @doc Start the zerolog server.
 start() ->
-    ok = start_apps([sasl, crypto, inets, webmachine,
-                     luke, erlang_js, mochiweb, os_mon,
+    ok = start_apps([sasl, crypto, inets, mochiweb, webmachine,
+                     compiler, syntax_tools, luke, erlang_js, lager, os_mon,
                      riak_sysmon, riak_core, riak_pipe, riak_kv]),
     ok = application:start(zerolog).
 
