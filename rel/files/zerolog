@@ -148,6 +148,11 @@ case "$1" in
         exec $ERTS_PATH/to_erl $PIPE_DIR
         ;;
 
+    up_latest)
+        # update to latest release
+        $NODETOOL rpc zerolog_release_handler upgrade_latest
+        ;;
+
     console|console_clean)
         # .boot file typically just $SCRIPT (ie, the app name)
         # however, for debugging, sometimes start_clean.boot is useful:
@@ -178,7 +183,7 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|console_clean|attach}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|console_clean|attach|up_latest}"
         exit 1
         ;;
 esac
